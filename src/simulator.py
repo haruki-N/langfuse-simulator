@@ -31,7 +31,7 @@ def create_app_wrapper():
 def generate_synthetic_conversation(persona: str, scenario: str, max_turns: int=3):
   """
   ペルソナ、シナリオ設定を利用して会話データを合成
-  
+
   Args:
     persona: 仮想ユーザーのペルソナ
     scenario: 会話シチュエーション
