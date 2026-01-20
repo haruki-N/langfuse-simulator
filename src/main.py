@@ -24,6 +24,7 @@ def main():
         dataset_name=DATASET,
         experiment_name=EXP
     )
+    print("Experiments done successfully! Eval results with eval.py if you needed")
 
 if __name__ == "__main__":
     main()
