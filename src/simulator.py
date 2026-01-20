@@ -1,8 +1,8 @@
 from openevals.simulators import run_multiturn_simulation, create_llm_simulated_user
-from chat import SimpleChat
+from chat import SimpleChat, GenerationConfig
 
 
-def create_app_wrapper():
+def create_app_wrapper(config: GenerationConfig | None = None):
   """
   OpenEvalsのマルチターンシミュレーションを使ったアプリケーション関数
   スレッドid単位で対話履歴を管理
@@ -15,7 +15,7 @@ def create_app_wrapper():
 
   def app(inputs, *, thread_id: str, **kwargs):
     if thread_id not in chat_instances:
-      chat_instances[thread_id] = SimpleChat()
+      chat_instances[thread_id] = SimpleChat(config=config)
     chat = chat_instances[thread_id]
     content = inputs.get("content") if isinstance(inputs, dict) else inputs.content
     response_text = chat.add_message(content)
@@ -28,7 +28,7 @@ def create_app_wrapper():
   return app
 
 
-def generate_synthetic_conversation(persona: str, scenario: str, max_turns: int=3):
+def generate_synthetic_conversation(persona: str, scenario: str, max_turns: int=3, config: GenerationConfig | None = None):
   """
   ペルソナ、シナリオ設定を利用して会話データを合成
 
@@ -39,7 +39,7 @@ def generate_synthetic_conversation(persona: str, scenario: str, max_turns: int=
   Returns:
     評価スコアと合わせた会話履歴
   """
-  app = create_app_wrapper()
+  app = create_app_wrapper(config=config)
 
   # 仮想ユーザー
   system_prompt_simulated = f"""あなたは以下のシチュエーションにいます:

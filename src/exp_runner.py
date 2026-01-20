@@ -3,10 +3,12 @@ load_dotenv()
 
 from langfuse import get_client
 from simulator import generate_synthetic_conversation
+from chat import GenerationConfig
 
-def run_dataset_experiment(dataset_name: str, experiment_name: str):
+def run_dataset_experiment(dataset_name: str, experiment_name: str, config: GenerationConfig | None = None):
   langfuse = get_client()
   dataset = langfuse.get_dataset(dataset_name)
+  config = config or GenerationConfig()
 
   print(f"データセット: {dataset_name} (インスタンス件数: {len(dataset.items)})")
 
@@ -21,7 +23,8 @@ def run_dataset_experiment(dataset_name: str, experiment_name: str):
 
     result = generate_synthetic_conversation(
       persona=persona,
-      scenario=scenario
+      scenario=scenario,
+      config=config,
     )
 
     return {
