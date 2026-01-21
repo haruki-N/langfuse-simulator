@@ -1,5 +1,7 @@
 from langfuse import get_client
+from logger import get_logger
 
+logger = get_logger(__name__)
 langfuse = get_client()
 
 def create_dataset():
@@ -8,10 +10,10 @@ def create_dataset():
     name='simulated-conversations',
     description='ペルソナとシナリオを設定した合成データ'
   )
-    print(f"Dataset created successfully: {dataset}")
+    logger.info(f"Dataset created successfully: {dataset}")
 
   except Exception as e:
-    print(f"Error creating dataset: {e}")
+    logger.error(f"Error creating dataset: {e}")
     return None
 
   try:
@@ -55,10 +57,10 @@ def create_dataset():
       }
     )
 
-    print(f"Dataset items created successfully")
+    logger.info("Dataset items created successfully")
 
   except Exception as e:
-    print(f"Error creating dataset item: {e}")
+    logger.error(f"Error creating dataset item: {e}")
     return None
 
   return dataset

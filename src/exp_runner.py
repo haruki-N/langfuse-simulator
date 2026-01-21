@@ -1,16 +1,20 @@
+from dataclasses import asdict
 from dotenv import load_dotenv
 load_dotenv()
 
 from langfuse import get_client
 from simulator import generate_synthetic_conversation
 from chat import GenerationConfig
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 def run_dataset_experiment(dataset_name: str, experiment_name: str, config: GenerationConfig | None = None):
   langfuse = get_client()
   dataset = langfuse.get_dataset(dataset_name)
   config = config or GenerationConfig()
 
-  print(f"データセット: {dataset_name} (インスタンス件数: {len(dataset.items)})")
+  logger.info(f"データセット: {dataset_name} (インスタンス件数: {len(dataset.items)})")
 
   def run_task(*, item, **kwargs):
     persona = item.input.get("persona")
@@ -19,7 +23,7 @@ def run_dataset_experiment(dataset_name: str, experiment_name: str, config: Gene
     if not persona or not scenario:
       raise ValueError(f"Dataset item must have 'persona' and 'scenario' fields. Got: {item.input}")
 
-    print(f"\nGenerating conversation for scenario: {scenario[:30]}...")
+    logger.info(f"Generating conversation for scenario: {scenario[:30]}...")
 
     result = generate_synthetic_conversation(
       persona=persona,
@@ -36,7 +40,8 @@ def run_dataset_experiment(dataset_name: str, experiment_name: str, config: Gene
     name=experiment_name,
     description="ペルソナ・シナリオを利用したユーザーシミュレーション実験",
     task=run_task,
+    metadata=asdict(config),
   )
 
   get_client().flush()
-  print(f"\n✅ Experiment complete!")
+  logger.info("Experiment complete!")

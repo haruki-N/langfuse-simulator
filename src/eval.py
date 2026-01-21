@@ -6,6 +6,9 @@ load_dotenv()
 from langfuse import get_client
 from langfuse.openai import openai
 from dataclasses import dataclass
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 class ObsExtractor():
   def __init__(self, dataset_name: str="simulated-conversations"):
@@ -27,11 +30,39 @@ class ObsExtractor():
     for run_item in dataset_run_items:
       trace_id = run_item.trace_id
       related_trace = self.langfuse.api.trace.get(trace_id=trace_id)
-      observation = related_trace.observations[0]
+
+      # デバッグ: 全 observations の概要を出力
+      logger.debug(f"trace_id={trace_id}")
+      logger.debug(f"  observations 数: {len(related_trace.observations)}")
+      for i, obs in enumerate(related_trace.observations):
+        output_type = type(obs.output).__name__
+        if isinstance(obs.output, dict):
+          output_keys = list(obs.output.keys())
+          has_trajectory = "trajectory" in obs.output
+        else:
+          output_keys = "N/A"
+          has_trajectory = False
+        logger.debug(f"  [{i}] name={obs.name}, type={obs.type}, output_type={output_type}, keys={output_keys}, has_trajectory={has_trajectory}")
+
+      # observations から experiment-item-run を探す（trajectory を持つ SPAN）
+      target_observation = None
+      target_idx = None
+      for i, obs in enumerate(related_trace.observations):
+        if obs.name == "experiment-item-run" and isinstance(obs.output, dict) and "trajectory" in obs.output:
+          target_observation = obs
+          target_idx = i
+          break
+
+      if target_observation is None:
+        logger.warning(f"trace_id={trace_id}: trajectory を含む observation が見つかりません。スキップします。")
+        continue
+
+      logger.debug(f"  -> trajectory index={target_idx}")
+
       observations.append({
-        "trace_id": observation.trace_id,
-        "input": observation.input,
-        "output": observation.output
+        "trace_id": target_observation.trace_id,
+        "input": target_observation.input,
+        "output": target_observation.output
       })
 
     return observations
@@ -146,11 +177,17 @@ def observation_to_eval_data(observation: dict) -> EvalData:
   input_data = observation.get("input", {})
   output_data = observation.get("output", {})
 
-  return EvalData(
-    persona=input_data.get("persona", ""),
-    scenario=input_data.get("scenario", ""),
-    trajectory=output_data.get("trajectory", [])
-  )
+  try:
+    return EvalData(
+      persona=input_data.get("persona", ""),
+      scenario=input_data.get("scenario", ""),
+      trajectory=output_data.get("trajectory", [])
+    )
+  except AttributeError as e:
+    logger.error(f"observation_to_eval_data でエラーが発生しました")
+    logger.error(f"  input_data type: {type(input_data)}, value: {input_data}")
+    logger.error(f"  output_data type: {type(output_data)}, value: {output_data}")
+    raise ValueError(f"output_data が期待されたdict型ではありません: {type(output_data)} - {output_data}") from e
 
 
 if __name__ == "__main__":
@@ -169,20 +206,20 @@ if __name__ == "__main__":
   extractor = ObsExtractor()
   observations = extractor.get_observations_for_eval()
 
-  print(f"取得したデータ数: {len(observations)}")
+  logger.info(f"取得したデータ数: {len(observations)}")
 
   for i, obs in enumerate(observations):
     trace_id = obs["trace_id"]
-    print(f"\n{'='*60}")
-    print(f"対話 {i + 1} (trace_id: {trace_id})")
-    print('='*60)
+    logger.info(f"{'='*60}")
+    logger.info(f"対話 {i + 1} (trace_id: {trace_id})")
+    logger.info('='*60)
 
     eval_data = observation_to_eval_data(obs)
-    print(f"ペルソナ: {eval_data.persona[:50]}...")
-    print(f"ターン数: {len(eval_data.trajectory) / 2}")
+    logger.info(f"ペルソナ: {eval_data.persona[:50]}...")
+    logger.info(f"ターン数: {len(eval_data.trajectory) / 2}")
 
     for eval_name, system_prompt in system_prompts.items():
-      print(f"\n--- {eval_name} ---")
+      logger.info(f"--- {eval_name} ---")
       result = eval_llm_as_a_judge(
         system_prompt=system_prompt,
         user_prompt_template=user_prompt_template,
@@ -192,8 +229,8 @@ if __name__ == "__main__":
       score = result.get("score")
       reasoning = result.get("reasoning", "")
 
-      print(f"スコア: {score}")
-      print(f"理由: {reasoning[:100]}...")
+      logger.info(f"スコア: {score}")
+      logger.info(f"理由: {reasoning[:100]}...")
 
       # Langfuseにスコアを登録
       if score is not None:
@@ -203,7 +240,7 @@ if __name__ == "__main__":
           score=score,
           comment=reasoning
         )
-        print(f"✓ Langfuseに登録完了")
+        logger.info(f"Langfuseに登録完了")
 
-  print(f"\n{'='*60}")
-  print("すべての評価が完了しました")
+  logger.info(f"{'='*60}")
+  logger.info("すべての評価が完了しました")

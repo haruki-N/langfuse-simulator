@@ -1,10 +1,16 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from langfuse.openai import openai
 from langfuse import get_client, observe
+from logger import get_logger
+
+logger = get_logger(__name__)
+
+
+DEFAULT_SYSTEM_PROMPT = "You are a helpful cooking assistant that answers questions about recipes and cooking."
 
 
 @dataclass
@@ -15,17 +21,38 @@ class GenerationConfig:
   top_p: float = 1.0
   frequency_penalty: float = 0.0
   presence_penalty: float = 0.0
+  # Langfuse Prompt Management 用設定
+  prompt_name: str | None = None
+  prompt_variables: dict = field(default_factory=dict)
+
+
+def get_system_prompt(config: "GenerationConfig") -> str:
+  """
+  Langfuse Prompt Management から system prompt を取得する。
+  prompt_name が設定されていない場合はデフォルトのプロンプトを返す。
+  """
+  if config.prompt_name is None:
+    logger.info("No Prompt Name at Langfuse provided: use default prompt at config")
+    return DEFAULT_SYSTEM_PROMPT
+
+  try:
+    langfuse = get_client()
+    prompt = langfuse.get_prompt(config.prompt_name)
+    return prompt.compile(**config.prompt_variables)
+  except Exception as e:
+    raise ValueError(f"Failed to fetch prompt '{config.prompt_name}' from Langfuse: {e}")
 
 
 class SimpleChat:
   def __init__(self, config: GenerationConfig | None = None):
+    self.config = config or GenerationConfig()
+    self._system_prompt = get_system_prompt(self.config)
     self.conversation_history = [
       {
         "role": "system",
-        "content": "You are a helpful cooking assistant that answers questions about recipes and cooking."
+        "content": self._system_prompt
       }
     ]
-    self.config = config or GenerationConfig()
 
   @observe
   def add_message(self, messages: list[dict] | str):
@@ -53,25 +80,24 @@ class SimpleChat:
         input=messages,
         output=assistant_message,
         tags=['simulator_experiment'],
-        metadata=asdict(self.config)
       )
       return assistant_message
 
     except Exception as e:
-      print(f"Error adding message: {e}")
+      logger.error(f"Error adding message: {e}")
       return None
 
   def print_history(self):
     import json
-    print("Conversation history: ")
-    print(json.dumps(self.conversation_history, indent=2, ensure_ascii=False))
-    print("-" * 50)
+    logger.info("Conversation history: ")
+    logger.info(json.dumps(self.conversation_history, indent=2, ensure_ascii=False))
+    logger.debug("-" * 50)
 
   def clear_history(self):
     self.conversation_history = [
       {
         "role": "system",
-        "content": "You are a helpful cooking assistant that answers questions about recipes and cooking."
+        "content": self._system_prompt
       }
     ]
-    print("Conversation history cleared.")
+    logger.info("Conversation history cleared.")
