@@ -14,15 +14,16 @@ langfuse = get_client()
 
 def main():
     DATASET = "simulated-conversations"
-    EXP = "simulated-exp-v0"
 
     # agent config (not simulated user)
+    # if you want to use reasoning model, uncomment unsupported params at chat.py
     config = GenerationConfig(
         model="gpt-4o",
         max_tokens=1000,
         temperature=0.7,
         prompt_name="system prompt for simulated-user experiment"
     )
+    EXP = f"{config.model} with {config.prompt_name}"
 
     # setup dataset
     try:

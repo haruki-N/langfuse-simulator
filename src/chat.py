@@ -16,8 +16,8 @@ DEFAULT_SYSTEM_PROMPT = "You are a helpful cooking assistant that answers questi
 @dataclass
 class GenerationConfig:
   model: str = "gpt-4o-mini"
-  max_tokens: int = 1000
-  temperature: float = 0.7
+  max_tokens: int | None = None
+  temperature: float | None = None
   top_p: float = 1.0
   frequency_penalty: float = 0.0
   presence_penalty: float = 0.0
