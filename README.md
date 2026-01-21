@@ -14,6 +14,7 @@ langfuse-simulator/
 │   ├── exp_runner.py     # データセットに対する実験実行
 │   ├── eval.py           # LLM-as-a-judgeによる評価
 │   ├── chat.py           # シンプルなチャットクラス（評価対象のアプリ）
+│   ├── logger.py         # 共通ロガー設定
 │   └── debug.py          # デバッグ用
 ├── prompt/
 │   ├── eval_adaptability.md        # 適応性評価のルーブリック
