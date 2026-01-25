@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
-"""デバッグ用スクリプト - 各機能を個別にテストする"""
-
 import argparse
-from chat import SimpleChat
+import logging
+from logger import get_logger
+get_logger("chat", level=logging.DEBUG)
+
+from chat import SimpleChat, GenerationConfig
 
 
 def test_add_message(message: str, model: str = "gpt-4o-mini"):
@@ -12,7 +13,11 @@ def test_add_message(message: str, model: str = "gpt-4o-mini"):
     print(f"Input: {message}")
     print("-" * 50)
 
-    chat = SimpleChat(model=model)
+    config = GenerationConfig(model=model, max_tokens=1000)
+    print(f"Config: max_tokens={config.max_tokens}, max_completion_tokens={config.max_completion_tokens}, temperature={config.temperature}")
+    print("-" * 50)
+
+    chat = SimpleChat(config=config)
     response = chat.add_message(message)
 
     print(f"Response: {response}")

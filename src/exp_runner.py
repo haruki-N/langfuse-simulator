@@ -36,7 +36,7 @@ def run_dataset_experiment(dataset_name: str, experiment_name: str, config: Gene
       "num_turns": len([m for m in result["trajectory"] if m.get("role") == "user"])
     }
 
-  result = dataset.run_experiment(
+  dataset.run_experiment(
     name=experiment_name,
     description="ペルソナ・シナリオを利用したユーザーシミュレーション実験",
     task=run_task,

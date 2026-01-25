@@ -16,9 +16,8 @@ def main():
     DATASET = "simulated-conversations"
 
     # agent config (not simulated user)
-    # if you want to use reasoning model, uncomment unsupported params at chat.py
     config = GenerationConfig(
-        model="gpt-4o",
+        model="gpt-5",
         max_tokens=1000,
         temperature=0.7,
         prompt_name="system prompt for simulated-user experiment"

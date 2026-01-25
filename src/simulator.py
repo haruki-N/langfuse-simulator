@@ -28,7 +28,12 @@ def create_app_wrapper(config: GenerationConfig | None = None):
   return app
 
 
-def generate_synthetic_conversation(persona: str, scenario: str, max_turns: int=3, config: GenerationConfig | None = None):
+def generate_synthetic_conversation(
+    persona: str,
+    scenario: str,
+    max_turns: int=3,
+    config: GenerationConfig | None = None
+  ):
   """
   ペルソナ、シナリオ設定を利用して会話データを合成
 
